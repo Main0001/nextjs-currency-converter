@@ -1,20 +1,112 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Star, TrendingUp, TrendingDown, Clock, DollarSign } from "lucide-react";
+import { Search, Star, Clock, DollarSign, Loader2, AlertCircle } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useSettings } from "@/lib/context/SettingsContext";
+import { useCurrencies } from "@/lib/hooks/useCurrencies";
+import { useRates } from "@/lib/hooks/useRates";
+import { formatNumber } from "@/lib/utils/currency-formatter";
 
 export default function RatesPage() {
-  const currencies = [
-    { code: "EUR", name: "Euro", flag: "🇪🇺", rate: 0.85, change: 0.12, isFavorite: false },
-    { code: "GBP", name: "British Pound", flag: "🇬🇧", rate: 0.73, change: -0.08, isFavorite: true },
-    { code: "JPY", name: "Japanese Yen", flag: "🇯🇵", rate: 110.25, change: 0.45, isFavorite: false },
-    { code: "CHF", name: "Swiss Franc", flag: "🇨🇭", rate: 0.92, change: 0.03, isFavorite: false },
-    { code: "CAD", name: "Canadian Dollar", flag: "🇨🇦", rate: 1.25, change: -0.15, isFavorite: true },
-    { code: "AUD", name: "Australian Dollar", flag: "🇦🇺", rate: 1.32, change: 0.22, isFavorite: false },
-    { code: "RUB", name: "Russian Ruble", flag: "🇷🇺", rate: 75.5, change: 1.2, isFavorite: false },
-    { code: "CNY", name: "Chinese Yuan", flag: "🇨🇳", rate: 6.45, change: -0.05, isFavorite: false },
-    { code: "INR", name: "Indian Rupee", flag: "🇮🇳", rate: 74.25, change: 0.18, isFavorite: false },
-  ];
+  const { baseCurrency, favorites, toggleFavorite, isFavorite } = useSettings();
+  const { data: currenciesData, isLoading: currenciesLoading, error: currenciesError } = useCurrencies();
+  const { data: ratesData, isLoading: ratesLoading, error: ratesError } = useRates(baseCurrency);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const filteredCurrencies = useMemo(() => {
+    if (!currenciesData || !ratesData) return [];
+
+    const allCurrencies = Object.values(currenciesData.data).filter(
+      (currency) => currency.code !== baseCurrency
+    );
+
+    let filtered = allCurrencies;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (currency) =>
+          currency.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          currency.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Favorites filter
+    if (showFavoritesOnly) {
+      filtered = filtered.filter((currency) => isFavorite(currency.code));
+    }
+
+    // Sort: favorites first, then alphabetically
+    return filtered.sort((a, b) => {
+      const aIsFav = isFavorite(a.code);
+      const bIsFav = isFavorite(b.code);
+
+      if (aIsFav && !bIsFav) return -1;
+      if (!aIsFav && bIsFav) return 1;
+      return a.code.localeCompare(b.code);
+    });
+  }, [currenciesData, ratesData, searchQuery, showFavoritesOnly, favorites, baseCurrency, isFavorite]);
+
+  if (currenciesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (currenciesError) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-destructive">
+              <AlertCircle className="h-8 w-8" />
+              <div>
+                <h3 className="font-semibold">Failed to load currencies</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {currenciesError instanceof Error ? currenciesError.message : 'Unknown error'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (ratesError) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">Exchange Rates</h1>
+            <p className="text-muted-foreground mt-2">
+              Live exchange rates for all major world currencies
+            </p>
+          </div>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-destructive">
+              <AlertCircle className="h-6 w-6" />
+              <div>
+                <h3 className="font-semibold">Failed to load exchange rates</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {ratesError instanceof Error ? ratesError.message : 'Unknown error'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -32,7 +124,7 @@ export default function RatesPage() {
               <DollarSign className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-xs text-muted-foreground">Base Currency</p>
-                <p className="font-bold">USD - US Dollar</p>
+                <p className="font-bold">{baseCurrency} - {currenciesData?.data[baseCurrency]?.name || 'US Dollar'}</p>
               </div>
             </div>
           </CardContent>
@@ -46,13 +138,23 @@ export default function RatesPage() {
           <Input
             placeholder="Search currencies..."
             className="pl-10 h-12"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <div className="flex gap-2">
-          <Button variant="default" className="flex-1 sm:flex-none">
+          <Button
+            variant={!showFavoritesOnly ? "default" : "outline"}
+            className="flex-1 sm:flex-none"
+            onClick={() => setShowFavoritesOnly(false)}
+          >
             All Currencies
           </Button>
-          <Button variant="outline" className="flex-1 sm:flex-none">
+          <Button
+            variant={showFavoritesOnly ? "default" : "outline"}
+            className="flex-1 sm:flex-none"
+            onClick={() => setShowFavoritesOnly(true)}
+          >
             <Star className="h-4 w-4 mr-2" />
             Favorites
           </Button>
@@ -60,70 +162,70 @@ export default function RatesPage() {
       </div>
 
       {/* Currency Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currencies.map((currency) => (
-          <Card key={currency.code} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl">{currency.flag}</span>
-                  <div>
-                    <CardTitle className="text-xl">{currency.code}</CardTitle>
-                    <CardDescription className="text-sm">
-                      {currency.name}
-                    </CardDescription>
+      {ratesLoading ? (
+        <div className="flex items-center justify-center min-h-[200px]">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCurrencies.map((currency) => {
+            const rate = ratesData?.data[currency.code]?.value || 0;
+            const currencyIsFavorite = isFavorite(currency.code);
+
+            return (
+              <Card key={currency.code} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center">
+                        <span className="text-lg font-bold">{currency.code.substring(0, 2)}</span>
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">{currency.code}</CardTitle>
+                        <CardDescription className="text-sm">
+                          {currency.name}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={currencyIsFavorite ? "text-yellow-500" : "text-muted-foreground"}
+                      onClick={() => toggleFavorite(currency.code)}
+                    >
+                      <Star className={`h-5 w-5 ${currencyIsFavorite ? "fill-current" : ""}`} />
+                    </Button>
                   </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={currency.isFavorite ? "text-yellow-500" : "text-muted-foreground"}
-                >
-                  <Star className={`h-5 w-5 ${currency.isFavorite ? "fill-current" : ""}`} />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-3xl font-bold">
-                  {currency.rate.toFixed(4)}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  1 USD = {currency.rate.toFixed(4)} {currency.code}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {currency.change >= 0 ? (
-                  <>
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-green-600 font-medium">
-                      +{currency.change.toFixed(2)}%
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingDown className="h-4 w-4 text-red-600" />
-                    <span className="text-sm text-red-600 font-medium">
-                      {currency.change.toFixed(2)}%
-                    </span>
-                  </>
-                )}
-                <span className="text-xs text-muted-foreground">Today</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <p className="text-3xl font-bold">
+                      {formatNumber(rate, 4)}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      1 {baseCurrency} = {formatNumber(rate, 4)} {currency.code}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Last Updated Info */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>Last updated: February 11, 2026, 10:00 AM</span>
-          </div>
-        </CardContent>
-      </Card>
+      {ratesData && (
+        <Card className="bg-muted/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>
+                Last updated: {new Date(ratesData.meta.last_updated_at).toLocaleString()}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
