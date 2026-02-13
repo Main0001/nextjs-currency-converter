@@ -18,6 +18,7 @@ export const appConfig = () => ({
     defaultBaseCurrency: process.env.DEFAULT_BASE_CURRENCY || "USD",
     maxConversionAmount: parseInt(process.env.MAX_CONVERSION_AMOUNT || "1000000000", 10),
     minConversionAmount: parseFloat(process.env.MIN_CONVERSION_AMOUNT || "0.01"),
+    defaultDecimalPlaces: parseInt(process.env.DEFAULT_DECIMAL_PLACES || "2", 10),
   },
 });
 
@@ -26,26 +27,3 @@ export type AppConfig = ReturnType<typeof appConfig>;
 
 // Export config instance
 export const config = appConfig();
-
-// Popular currencies constants
-export const POPULAR_CURRENCIES = [
-  "USD",
-  "EUR",
-  "GBP",
-  "JPY",
-  "CHF",
-  "CAD",
-  "AUD",
-  "CNY",
-  "RUB",
-  "INR",
-] as const;
-
-export type PopularCurrency = (typeof POPULAR_CURRENCIES)[number];
-
-// Conversion limits
-export const LIMITS = {
-  MAX_AMOUNT: config.app.maxConversionAmount,
-  MIN_AMOUNT: config.app.minConversionAmount,
-  DECIMAL_PLACES: 2,
-} as const;

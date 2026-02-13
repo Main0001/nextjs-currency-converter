@@ -1,9 +1,28 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Star, Clock, DollarSign, Loader2, AlertCircle } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Search,
+  Star,
+  Clock,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { useState, useMemo } from "react";
 import { useSettings } from "@/lib/context/SettingsContext";
 import { useCurrencies } from "@/lib/hooks/useCurrencies";
@@ -11,18 +30,32 @@ import { useRates } from "@/lib/hooks/useRates";
 import { formatNumber } from "@/lib/utils/currency-formatter";
 
 export default function RatesPage() {
-  const { baseCurrency, favorites, toggleFavorite, isFavorite } = useSettings();
-  const { data: currenciesData, isLoading: currenciesLoading, error: currenciesError } = useCurrencies();
-  const { data: ratesData, isLoading: ratesLoading, error: ratesError } = useRates(baseCurrency);
+  const {
+    baseCurrency,
+    setBaseCurrency,
+    favorites,
+    toggleFavorite,
+    isFavorite,
+  } = useSettings();
+  const {
+    data: currenciesData,
+    isLoading: currenciesLoading,
+    error: currenciesError,
+  } = useCurrencies();
+  const {
+    data: ratesData,
+    isLoading: ratesLoading,
+    error: ratesError,
+  } = useRates(baseCurrency);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const filteredCurrencies = useMemo(() => {
     if (!currenciesData || !ratesData) return [];
 
     const allCurrencies = Object.values(currenciesData.data).filter(
-      (currency) => currency.code !== baseCurrency
+      (currency) => currency.code !== baseCurrency,
     );
 
     let filtered = allCurrencies;
@@ -32,7 +65,7 @@ export default function RatesPage() {
       filtered = filtered.filter(
         (currency) =>
           currency.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          currency.name.toLowerCase().includes(searchQuery.toLowerCase())
+          currency.name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -50,7 +83,15 @@ export default function RatesPage() {
       if (!aIsFav && bIsFav) return 1;
       return a.code.localeCompare(b.code);
     });
-  }, [currenciesData, ratesData, searchQuery, showFavoritesOnly, favorites, baseCurrency, isFavorite]);
+  }, [
+    currenciesData,
+    ratesData,
+    searchQuery,
+    showFavoritesOnly,
+    favorites,
+    baseCurrency,
+    isFavorite,
+  ]);
 
   if (currenciesLoading) {
     return (
@@ -70,7 +111,9 @@ export default function RatesPage() {
               <div>
                 <h3 className="font-semibold">Failed to load currencies</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {currenciesError instanceof Error ? currenciesError.message : 'Unknown error'}
+                  {currenciesError instanceof Error
+                    ? currenciesError.message
+                    : "Unknown error"}
                 </p>
               </div>
             </div>
@@ -85,7 +128,9 @@ export default function RatesPage() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Exchange Rates</h1>
+            <h1 className="text-4xl font-bold tracking-tight">
+              Exchange Rates
+            </h1>
             <p className="text-muted-foreground mt-2">
               Live exchange rates for all major world currencies
             </p>
@@ -98,7 +143,9 @@ export default function RatesPage() {
               <div>
                 <h3 className="font-semibold">Failed to load exchange rates</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {ratesError instanceof Error ? ratesError.message : 'Unknown error'}
+                  {ratesError instanceof Error
+                    ? ratesError.message
+                    : "Unknown error"}
                 </p>
               </div>
             </div>
@@ -120,12 +167,24 @@ export default function RatesPage() {
         </div>
         <Card className="w-fit">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Base Currency</p>
-                <p className="font-bold">{baseCurrency} - {currenciesData?.data[baseCurrency]?.name || 'US Dollar'}</p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-muted-foreground">
+                  Base Currency
+                </span>
               </div>
+              <Select value={baseCurrency} onValueChange={setBaseCurrency}>
+                <SelectTrigger className="h-9 w-[220px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(currenciesData?.data || {}).map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.code} - {currency.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -136,6 +195,7 @@ export default function RatesPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            aria-label="Search currencies"
             placeholder="Search currencies..."
             className="pl-10 h-12"
             value={searchQuery}
@@ -173,15 +233,22 @@ export default function RatesPage() {
             const currencyIsFavorite = isFavorite(currency.code);
 
             return (
-              <Card key={currency.code} className="hover:shadow-lg transition-shadow">
+              <Card
+                key={currency.code}
+                className="hover:shadow-lg transition-shadow"
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center">
-                        <span className="text-lg font-bold">{currency.code.substring(0, 2)}</span>
+                        <span className="text-lg font-bold">
+                          {currency.code.substring(0, 2)}
+                        </span>
                       </div>
                       <div>
-                        <CardTitle className="text-xl">{currency.code}</CardTitle>
+                        <CardTitle className="text-xl">
+                          {currency.code}
+                        </CardTitle>
                         <CardDescription className="text-sm">
                           {currency.name}
                         </CardDescription>
@@ -190,10 +257,16 @@ export default function RatesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={currencyIsFavorite ? "text-yellow-500" : "text-muted-foreground"}
+                      className={
+                        currencyIsFavorite
+                          ? "text-yellow-500"
+                          : "text-muted-foreground"
+                      }
                       onClick={() => toggleFavorite(currency.code)}
                     >
-                      <Star className={`h-5 w-5 ${currencyIsFavorite ? "fill-current" : ""}`} />
+                      <Star
+                        className={`h-5 w-5 ${currencyIsFavorite ? "fill-current" : ""}`}
+                      />
                     </Button>
                   </div>
                 </CardHeader>
@@ -220,7 +293,8 @@ export default function RatesPage() {
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
               <span>
-                Last updated: {new Date(ratesData.meta.last_updated_at).toLocaleString()}
+                Last updated:{" "}
+                {new Date(ratesData.meta.last_updated_at).toLocaleString()}
               </span>
             </div>
           </CardContent>

@@ -65,26 +65,6 @@ export default function RootLayout({
                 <p className="text-sm text-muted-foreground">
                   © 2026 CurrencyHub. Powered by CurrencyAPI.
                 </p>
-                <div className="flex gap-4 text-sm text-muted-foreground">
-                  <a
-                    href="#"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Privacy
-                  </a>
-                  <a
-                    href="#"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Terms
-                  </a>
-                  <a
-                    href="#"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    API
-                  </a>
-                </div>
               </div>
             </div>
           </footer>

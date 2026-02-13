@@ -16,7 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownUp, TrendingUp, Clock, Loader2, AlertCircle } from "lucide-react";
+import {
+  ArrowDownUp,
+  TrendingUp,
+  Clock,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSettings } from "@/lib/context/SettingsContext";
 import { useCurrencies } from "@/lib/hooks/useCurrencies";
@@ -24,18 +30,23 @@ import { useRates } from "@/lib/hooks/useRates";
 import { formatNumber } from "@/lib/utils/currency-formatter";
 
 export default function ConverterPage() {
-  const { baseCurrency } = useSettings();
-  const { data: currenciesData, isLoading: currenciesLoading, error: currenciesError } =
-    useCurrencies();
+  const { baseCurrency, setBaseCurrency } = useSettings();
+  const {
+    data: currenciesData,
+    isLoading: currenciesLoading,
+    error: currenciesError,
+  } = useCurrencies();
 
   const [amount, setAmount] = useState<string>("1000");
   const [fromCurrency, setFromCurrency] = useState<string>(baseCurrency);
   const [toCurrency, setToCurrency] = useState<string>("EUR");
   const [result, setResult] = useState<string>("0");
 
-  const { data: ratesData, isLoading: ratesLoading, error: ratesError } = useRates(fromCurrency, [
-    toCurrency,
-  ]);
+  const {
+    data: ratesData,
+    isLoading: ratesLoading,
+    error: ratesError,
+  } = useRates(fromCurrency, [toCurrency]);
 
   // Update fromCurrency when baseCurrency changes
   useEffect(() => {
@@ -44,10 +55,19 @@ export default function ConverterPage() {
 
   // Calculate conversion when data changes
   useEffect(() => {
-    if (ratesData && amount) {
+    if (!amount) {
+      setResult("");
+      return;
+    }
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed)) {
+      setResult("");
+      return;
+    }
+    if (ratesData) {
       const rate = ratesData.data[toCurrency]?.value;
       if (rate) {
-        const converted = parseFloat(amount) * rate;
+        const converted = parsed * rate;
         setResult(converted.toFixed(6));
       }
     }
@@ -80,7 +100,9 @@ export default function ConverterPage() {
               <div>
                 <h3 className="font-semibold">Failed to load currencies</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {currenciesError instanceof Error ? currenciesError.message : 'Unknown error'}
+                  {currenciesError instanceof Error
+                    ? currenciesError.message
+                    : "Unknown error"}
                 </p>
               </div>
             </div>
@@ -102,6 +124,29 @@ export default function ConverterPage() {
         </p>
       </div>
 
+      {/* Base Currency Selector */}
+      <Card className="max-w-md mx-auto">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-sm font-medium">Base Currency</span>
+            </div>
+            <Select value={baseCurrency} onValueChange={setBaseCurrency}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Select base currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.code} - {currency.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Main Converter Card */}
       <Card className="shadow-xl">
         <CardHeader>
@@ -113,9 +158,10 @@ export default function ConverterPage() {
         <CardContent className="space-y-6">
           {/* From Currency */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">From</label>
+            <label htmlFor="from-amount" className="text-sm font-medium">From</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
+                id="from-amount"
                 type="number"
                 placeholder="1000.00"
                 className="text-lg h-12"
@@ -145,6 +191,7 @@ export default function ConverterPage() {
               className="h-10 w-10 rounded-full"
               onClick={handleSwap}
               disabled={ratesLoading}
+              aria-label="Swap currencies"
             >
               <ArrowDownUp className="h-4 w-4" />
             </Button>
@@ -152,9 +199,10 @@ export default function ConverterPage() {
 
           {/* To Currency */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">To</label>
+            <label htmlFor="to-result" className="text-sm font-medium">To</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
+                id="to-result"
                 type="number"
                 placeholder="0.00"
                 className="text-lg h-12 bg-muted"
@@ -185,7 +233,9 @@ export default function ConverterPage() {
                   <div>
                     <p className="font-medium">Failed to load exchange rate</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {ratesError instanceof Error ? ratesError.message : 'Unknown error'}
+                      {ratesError instanceof Error
+                        ? ratesError.message
+                        : "Unknown error"}
                     </p>
                   </div>
                 </div>

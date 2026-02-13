@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, useCallback, ReactNode } from 'react';
 import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
 import { config } from '@/lib/constants/config';
 
@@ -28,15 +28,15 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 
   const [favorites, setFavorites] = useLocalStorage<string[]>('favorites', []);
 
-  const toggleFavorite = (currency: string) => {
+  const toggleFavorite = useCallback((currency: string) => {
     setFavorites((prev) =>
       prev.includes(currency)
         ? prev.filter((c) => c !== currency)
         : [...prev, currency]
     );
-  };
+  }, [setFavorites]);
 
-  const isFavorite = (currency: string) => favorites.includes(currency);
+  const isFavorite = useCallback((currency: string) => favorites.includes(currency), [favorites]);
 
   return (
     <SettingsContext.Provider
