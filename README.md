@@ -31,7 +31,18 @@ API
 
 ## Использование
 
-### Запуск приложения
+В приложении используется Shadcn UI.
+
+Официальная документация - https://ui.shadcn.com/docs/installation
+
+### В приложении используются такие компоненты как:
+
+- button - https://ui.shadcn.com/docs/components/radix/button
+- card - https://ui.shadcn.com/docs/components/radix/card
+- input - https://ui.shadcn.com/docs/components/radix/input
+- select - https://ui.shadcn.com/docs/components/radix/select
+
+## Запуск приложения
 
 1. `git clone <repository-url>`
 2. `cd nextjs-converter-currencies`
